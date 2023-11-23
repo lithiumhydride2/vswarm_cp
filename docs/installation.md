@@ -79,7 +79,7 @@ sudo apt install python3-pip  # required for pip installations
 sudo apt install python3-sip-dev  # PyKDL requirement
 python3 -m pip install --user -r vswarm/requirements.txt
 # This is a bad hack, but it works :) (build requirement for python_orocos_kdl)
-ln -sf /usr/lib/python2.7/dist-packages/sipconfig{,_nd}.py ~/.local/lib/python3.6/site-packages/
+ln -sf /usr/lib/python2.7/dist-packages/sipconfig{,_nd}.py ~/.local/lib/python3.8/site-packages/
 ln -sf ${PX4_ROOT}/ROMFS ~/.ros/  # Let PX4 find its config (even when working dir is ~/.ros)
 ```
 

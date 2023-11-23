@@ -1,0 +1,4 @@
+- git:
+    uri: https://github.com/ros-perception/vision_opencv/
+    local-name: vision_opencv
+    version: noetic

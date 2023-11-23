@@ -1,7 +1,7 @@
 - git:
     uri: https://github.com/ros-perception/vision_opencv/
     local-name: vision_opencv
-    version: melodic
+    version: noetic
 - git:
     uri: https://github.com/ros/geometry2
     local-name: geometry2
@@ -10,7 +10,14 @@
     uri: https://github.com/orocos/orocos_kinematics_dynamics
     local-name: orocos_kinematics_dynamics
     version: v1.4.0
+
 - git:
     uri: https://github.com/ros-simulation/gazebo_ros_pkgs
     local-name: gazebo_ros_pkgs
-    version: melodic-devel
+    version: noetic-devel
+
+# add
+- git:
+    uri: https://github.com/ros/xacro
+    local-name: xacro
+    version: noetic-devel

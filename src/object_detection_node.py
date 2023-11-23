@@ -28,55 +28,64 @@ from vswarm.object_detection import util
 
 
 class ObjectDetectionNode:
-
     def __init__(self):
-
-        self.node_name = 'object_detection_node'
+        self.node_name = "object_detection_node"
         rospy.init_node(self.node_name, argv=sys.argv)
 
         # Parameters
-        self.type = rospy.get_param('~type', default='yolo')
-        self.checkpoint = rospy.get_param('~checkpoint', default=None)
-        self.config = rospy.get_param('~config', default=None)
-        self.grayscale = rospy.get_param('~grayscale', default=False)
-        self.verbose = rospy.get_param('~verbose', default=False)
-        self.namespace = rospy.get_namespace().split('/')[1]
+        self.type = rospy.get_param("~type", default="yolo")
+        self.checkpoint = rospy.get_param("~checkpoint", default=None)
+        self.config = rospy.get_param("~config", default=None)
+        self.grayscale = rospy.get_param("~grayscale", default=False)
+        self.verbose = rospy.get_param("~verbose", default=False)
+        self.namespace = rospy.get_namespace().split("/")[1]
 
         # Choose detector type
-        rospy.loginfo('Loading detector: {}'.format(self.type))
-        if self.type == 'apriltag':
+        rospy.loginfo("Loading detector: {}".format(self.type))
+        if self.type == "apriltag":
             from vswarm.object_detection.apriltag_detector import ApriltagDetector
+
             self.detector = ApriltagDetector()
-        elif self.type == 'blob':
+        elif self.type == "blob":
             from vswarm.object_detection.blob_detector import BlobDetector
+
             self.detector = BlobDetector()
-        elif self.type == 'checkerboard':
-            from vswarm.object_detection.checkerboard_detector import CheckerboardDetector
+        elif self.type == "checkerboard":
+            from vswarm.object_detection.checkerboard_detector import (
+                CheckerboardDetector,
+            )
+
             self.detector = CheckerboardDetector(checkerboard_shape=(8, 6))
-        elif self.type == 'yolo':
+        elif self.type == "yolo":
             from vswarm.object_detection.yolo_detector import YoloDetector
-            self.detector = YoloDetector(checkpoint_path=self.checkpoint,
-                                         config_path=self.config,
-                                         grayscale=self.grayscale,
-                                         verbose=self.verbose)
-            rospy.loginfo('Loaded config: {}'.format(os.path.basename(self.config)))
+
+            self.detector = YoloDetector(
+                checkpoint_path=self.checkpoint,
+                config_path=self.config,
+                grayscale=self.grayscale,
+                verbose=self.verbose,
+            )
+            rospy.loginfo("Loaded config: {}".format(os.path.basename(self.config)))
         else:
-            rospy.logerr('Unrecognized detector type: {}'
-                         .format(self.type))
+            rospy.logerr("Unrecognized detector type: {}".format(self.type))
             exit(1)
-        rospy.loginfo('Detector loaded: {}'.format(self.type))
+        rospy.loginfo("Detector loaded: {}".format(self.type))
 
         # Try connecting to global dynamic reconfigure server, otherwise create local one
         self.config = {}
         try:
-            self.client = Client('/gcs/object_detection_config_server',
-                                 config_callback=self.config_callback,
-                                 timeout=1)
-            rospy.loginfo('Connected to remote dynamic reconfigure server.')
+            self.client = Client(
+                "/gcs/object_detection_config_server",
+                config_callback=self.config_callback,
+                timeout=1,
+            )
+            rospy.loginfo("Connected to remote dynamic reconfigure server.")
         except rospy.ROSException:
-            rospy.logwarn('Failed to connect to dynamic reconfigure server.')
-            rospy.loginfo('Connected to local dynamic reconfigure server.')
-            self.server = Server(ObjectDetectionNodeConfig, callback=self.config_callback)
+            rospy.logwarn("Failed to connect to dynamic reconfigure server.")
+            rospy.loginfo("Connected to local dynamic reconfigure server.")
+            self.server = Server(
+                ObjectDetectionNodeConfig, callback=self.config_callback
+            )
             self.client = Client(self.node_name)
         self.config = self.client.get_configuration()
 
@@ -88,54 +97,60 @@ class ObjectDetectionNode:
         self.initial_detections_list = []
 
         # Publishers
-        detections_pub_topic = self.node_name + '/detections'
-        self.detections_pub = rospy.Publisher(detections_pub_topic, Detection2DArray,
-                                              queue_size=1)
+        detections_pub_topic = self.node_name + "/detections"
+        self.detections_pub = rospy.Publisher(
+            detections_pub_topic, Detection2DArray, queue_size=1
+        )
 
-        num_detections_pub_topic = self.node_name + '/num_detections'
-        self.num_detections_pub = rospy.Publisher(num_detections_pub_topic, Int32,
-                                                  queue_size=1)
+        num_detections_pub_topic = self.node_name + "/num_detections"
+        self.num_detections_pub = rospy.Publisher(
+            num_detections_pub_topic, Int32, queue_size=1
+        )
 
-        self.input_images = rospy.get_param('~input_images')
+        self.input_images = rospy.get_param("~input_images")
 
-        image_topic = self.node_name + '/detections/image_raw'
+        image_topic = self.node_name + "/detections/image_raw"
         self.image_publisher = rospy.Publisher(image_topic, Image, queue_size=1)
 
         self.image_messages = [None for _ in self.input_images]
         self.image_updated = [False for _ in self.input_images]
         self.image_subscribers = []
         for i, topic in enumerate(self.input_images):
-
             # Subscriber
-            subscriber = rospy.Subscriber(topic, Image,
-                                          callback=self.image_callback,
-                                          callback_args=i,
-                                          queue_size=1,
-                                          buff_size=2 ** 24)
+            subscriber = rospy.Subscriber(
+                topic,
+                Image,
+                callback=self.image_callback,
+                callback_args=i,
+                queue_size=1,
+                buff_size=2**24,
+            )
             self.image_subscribers.append(subscriber)
 
     def config_callback(self, config, level=None):
         for name, new_value in config.items():
-            if name == 'groups' or name not in self.config:
+            if name == "groups" or name not in self.config:
                 continue
             old_value = self.config[name]
             if old_value != new_value:
-                rospy.loginfo('Update `{}`: {} -> {}'.format(name, old_value, new_value))
+                rospy.loginfo(
+                    "Update `{}`: {} -> {}".format(name, old_value, new_value)
+                )
         return self.update_config(config)
 
     def update_config(self, config):
         self.config = config
 
         # Update underlying detector
-        if hasattr(self.detector, 'confidence_threshold'):
-            self.detector.confidence_threshold = self.config['confidence_threshold']
-        if hasattr(self.detector, 'iou_threshold'):
-            self.detector.iou_threshold = self.config['iou_threshold']
+        if hasattr(self.detector, "confidence_threshold"):
+            self.detector.confidence_threshold = self.config["confidence_threshold"]
+        if hasattr(self.detector, "iou_threshold"):
+            self.detector.iou_threshold = self.config["iou_threshold"]
 
         return config
 
     def image_callback(self, image_msg, i):
-        rospy.loginfo_once('Image callback')
+        rospy.loginfo_once("Image callback")
         self.image_messages[i] = image_msg
         self.image_updated[i] = True
         if all(self.image_updated):
@@ -143,7 +158,6 @@ class ObjectDetectionNode:
             self.callback(*self.image_messages[:])
 
     def callback(self, *image_msgs):
-
         # Extract width and height from image message
         width, height = image_msgs[0].width, image_msgs[0].height
 
@@ -152,12 +166,14 @@ class ObjectDetectionNode:
         # The fully qualified frame_id is: drone_<N>/camera_<direction>_optical
         for image_msg, topic in zip(image_msgs, self.input_images):
             # In reality, the frame_id does not start with 'drone_'
-            if not image_msg.header.frame_id.startswith('drone_'):
-                camera_name = topic.split('/')[-2]
-                image_msg.header.frame_id = '{}/{}_optical'.format(self.namespace, camera_name)
+            if not image_msg.header.frame_id.startswith("drone_"):
+                camera_name = topic.split("/")[-2]
+                image_msg.header.frame_id = "{}/{}_optical".format(
+                    self.namespace, camera_name
+                )
             # In simulation, the frame_id ends with '_link' which we don't want
-            if image_msg.header.frame_id.endswith('_link'):
-                frame_id = image_msg.header.frame_id.replace('_link', '_optical')
+            if image_msg.header.frame_id.endswith("_link"):
+                frame_id = image_msg.header.frame_id.replace("_link", "_optical")
                 image_msg.header.frame_id = frame_id
 
         # Convert ROS image messages to grayscale numpy images
@@ -169,21 +185,27 @@ class ObjectDetectionNode:
             images.append(image_raw)
 
         # Optional: introduce processing delay
-        if self.config['delay'] > 0.0:
-            rospy.sleep(self.config['delay'])
+        if self.config["delay"] > 0.0:
+            rospy.sleep(self.config["delay"])
 
-        if self.track_length > self.config['max_track_length']:
+        if self.track_length > self.config["max_track_length"]:
             self.track_length = 0
 
         # Detect or track
         detection_array_msg_list = []
-        if self.config['use_visual_tracking'] and self.track_length > 0:
-            rospy.logdebug('Tracking: {}/{}'.format(self.track_length, self.config['max_track_length']))
-            for i, (tracker, image, dets) in enumerate(zip(self.trackers, images, self.initial_detections_list)):
+        if self.config["use_visual_tracking"] and self.track_length > 0:
+            rospy.logdebug(
+                "Tracking: {}/{}".format(
+                    self.track_length, self.config["max_track_length"]
+                )
+            )
+            for i, (tracker, image, dets) in enumerate(
+                zip(self.trackers, images, self.initial_detections_list)
+            ):
                 if tracker is not None:
                     tracked = tracker.track(image)
                     if len(tracked.detections) < len(dets.detections):
-                        rospy.logdebug('Lost track!')
+                        rospy.logdebug("Lost track!")
                         self.trackers[i] = None
                 else:
                     tracked = Detection2DArray()
@@ -191,14 +213,14 @@ class ObjectDetectionNode:
             self.track_length += 1
         else:
             # Input: list of images, output: list of detection arrays
-            rospy.logdebug('Detection')
+            rospy.logdebug("Detection")
             detection_array_msg_list = self.detector.detect_multi(images)
 
         # Create trackers only for images for which we have detections
-        if self.config['use_visual_tracking'] and self.track_length == 0:
+        if self.config["use_visual_tracking"] and self.track_length == 0:
             self.trackers = []
             self.initial_detections_list = detection_array_msg_list
-            rospy.logdebug('Tracking: feeding detection to tracker')
+            rospy.logdebug("Tracking: feeding detection to tracker")
             for image, detection_array_msg in zip(images, self.initial_detections_list):
                 if len(detection_array_msg.detections) > 0:
                     tracker = OpenCVTracker(image, detection_array_msg.detections)
@@ -212,14 +234,14 @@ class ObjectDetectionNode:
         for detection_array_msg, image_msg in zip(detection_array_msg_list, image_msgs):
             out_detection_array = Detection2DArray()
             for detection_msg in detection_array_msg.detections:
-
                 # Reject detections based distance to the image edges
-                if util.is_edge_detection(detection_msg, width, height,
-                                          width_thresh=0.01, height_thresh=0.01):
+                if util.is_edge_detection(
+                    detection_msg, width, height, width_thresh=0.01, height_thresh=0.01
+                ):
                     continue
 
                 # Drop detections with false negative probability
-                if bool(np.random.binomial(1, p=self.config['false_negative_prob'])):
+                if bool(np.random.binomial(1, p=self.config["false_negative_prob"])):
                     continue
 
                 # Add out detection with image header to detections
@@ -234,7 +256,7 @@ class ObjectDetectionNode:
         out_detection_array_msg = Detection2DArray()
         out_detection_array_msg.header.stamp = rospy.Time.now()
         # The following frame_id does not actually exist (check individual detections!)
-        frame_id = image_msgs[0].header.frame_id.split('/')[0] + '/camera_array'
+        frame_id = image_msgs[0].header.frame_id.split("/")[0] + "/camera_array"
         out_detection_array_msg.header.frame_id = frame_id
         for detection_array_msg in out_detection_array_msg_list:
             for detection_msg in detection_array_msg.detections:
@@ -245,12 +267,14 @@ class ObjectDetectionNode:
         self.num_detections_pub.publish(Int32(len(out_detection_array_msg.detections)))
 
         # Publish image annotated with detections (optionally)
-        if self.config['publish_image']:
+        if self.config["publish_image"]:
             images_annotated = []
             for image, detection_array_msg in zip(images, out_detection_array_msg_list):
                 image_annotated = cv.cvtColor(image, cv.COLOR_GRAY2BGR)
                 for detection_msg in detection_array_msg.detections:
-                    image_annotated = self._draw_detection(image_annotated, detection_msg)
+                    image_annotated = self._draw_detection(
+                        image_annotated, detection_msg
+                    )
                 images_annotated.append(image_annotated)
 
             # Concatenate images along width axis
@@ -258,7 +282,9 @@ class ObjectDetectionNode:
             image_concat = self._make_image_strip(images_annotated)
 
             # Publish image with detection overlay
-            image_detection_msg = self.bridge.cv2_to_imgmsg(image_concat, encoding='bgr8')
+            image_detection_msg = self.bridge.cv2_to_imgmsg(
+                image_concat, encoding="bgr8"
+            )
             image_detection_msg.header.stamp = rospy.Time.now()
             self.image_publisher.publish(image_detection_msg)
 
@@ -274,13 +300,19 @@ class ObjectDetectionNode:
             object_hypothesis = detection_msg.results[0]
             score = object_hypothesis.score * 100
             # name = 'Drone'  # object_hypothesis.id  # TODO: human-readable name
-            text = '{score}%'.format(score=int(round(score)))
+            text = "{score}%".format(score=int(round(score)))
             x, y = pt1
             org = (x, y - 5)
-            image = cv.putText(image, text=text, org=org,
-                               fontFace=cv.FONT_HERSHEY_COMPLEX,
-                               fontScale=0.4, color=color,
-                               thickness=1, lineType=cv.LINE_AA)
+            image = cv.putText(
+                image,
+                text=text,
+                org=org,
+                fontFace=cv.FONT_HERSHEY_COMPLEX,
+                fontScale=0.4,
+                color=color,
+                thickness=1,
+                lineType=cv.LINE_AA,
+            )
         return image
 
     def _make_image_strip(self, image_list):
@@ -297,15 +329,21 @@ class ObjectDetectionNode:
                 if index > len(image_list):
                     break
                 h, w = row * height, col * width
-                collage[h:h + height, w:w + width, :] = image_list[index]
+                collage[h : h + height, w : w + width, :] = image_list[index]
 
                 # Add text
                 text = self.input_images[index]
                 org = (w + int(0.03 * width), h + height - int(0.03 * height))
-                collage = cv.putText(collage, text=text, org=org,
-                                     fontFace=cv.FONT_HERSHEY_COMPLEX,
-                                     fontScale=0.6, color=(255, 255, 255),
-                                     thickness=1, lineType=cv.LINE_AA)
+                collage = cv.putText(
+                    collage,
+                    text=text,
+                    org=org,
+                    fontFace=cv.FONT_HERSHEY_COMPLEX,
+                    fontScale=0.6,
+                    color=(255, 255, 255),
+                    thickness=1,
+                    lineType=cv.LINE_AA,
+                )
                 index += 1
         return collage
 
@@ -315,5 +353,5 @@ def main():
     rospy.spin()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

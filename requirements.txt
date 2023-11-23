@@ -1,14 +1,14 @@
 # catkin build dependencies
 
 # build dependencies for cv_bridge
-catkin_pkg>=0.4.23
-numpy>=1.19.5
+# catkin_pkg>=0.4.23
+# numpy>=1.19.5
 
 # build dependencies for tf2_msgs
-empy==3.3.2
+# empy==3.3.2
 
 # build dependencies for mavlink
-future==0.18.2
+# future==0.18.2
 
 # runtime dependencies
 
