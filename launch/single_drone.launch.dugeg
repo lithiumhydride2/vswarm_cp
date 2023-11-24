@@ -54,6 +54,7 @@
         args="$(find px4)/ROMFS/px4fmu_common
             -s $(arg rcs_script)
             -i $(arg ID)
+            -w sitl_vswarm_$(arg id_one)
             $(arg px4_daemon_mode)"
     />
 
@@ -87,23 +88,5 @@
         <rosparam command="load" file="$(find vswarm)/config/px4/px4_pluginlists.yaml" />
         <rosparam command="load" file="$(find mavros)/launch/px4_config.yaml" />
     </node>
-
-    <!-- TODO: enable-->
-    <!-- <include file="$(find vswarm)/launch/offboard_node.launch" /> -->
-    <!-- <include file="$(find vswarm)/launch/global_position_node.launch" /> -->
-
-    <!-- Object detection -->
-    <include file="$(find vswarm)/launch/object_detection_node.launch" />
-
-    <!-- Relative localization -->
-    <include file="$(find vswarm)/launch/relative_localization_node.launch" />
-
-    <!-- Multi-target tracking -->
-    <include file="$(find vswarm)/launch/multi_target_tracking_node.launch" />
-
-    <!-- Flocking control -->
-    <include file="$(find vswarm)/launch/flocking_node.launch">
-        <arg name="n" value="$(arg n)" />
-    </include>
 
 </launch>
