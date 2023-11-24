@@ -21,3 +21,8 @@
     uri: https://github.com/ros/xacro
     local-name: xacro
     version: noetic-devel
+
+- git:
+    uri: https://github.com/mavlink/mavros
+    local-name: mavros
+    version: noetic-devel

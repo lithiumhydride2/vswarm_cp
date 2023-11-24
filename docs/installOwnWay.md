@@ -50,3 +50,12 @@ https://blog.csdn.net/weixin_45929038/article/details/115425996
 #find_package(Boost REQUIRED COMPONENTS signals system thread)
 set(Boost_INCLUDE_DIRS /usr/include/boost)
 ```
+
+### 更改 LD_PACKAGE_PATH
+~/.bashrc 中添加
+```
+export LD_LIBRARY_PATH=/opt/ros/noetic/lib:$LD_LIBRARY_PATH
+export GAZEBO_MODEL_PATH=~/catkin_ws/src/vswarm_cp/models:$GAZEBO_MODEL_PATH
+
+```
+
