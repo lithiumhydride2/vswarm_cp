@@ -30,7 +30,12 @@ git lfs pull
 
 ### 编译 python3 下的cv_bridge
 
-遵循原有步骤，仅安装 cv_bridge
+遵循原有步骤，wstool
+```bash
+cd ~/catkin_ws/src
+wstool merge vswarm_cp/vswarm.rosinstall
+wstool update
+```
 Install selected ROS packages with Python 3 support
 
 ```bash
